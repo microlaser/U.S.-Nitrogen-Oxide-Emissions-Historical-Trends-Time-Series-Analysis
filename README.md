@@ -1,3 +1,7 @@
+https://aqs.epa.gov/aqsweb/airdata/download_files.html
+
+You have to download the NOx/NOy data from 1980-2025 for this code to work.  You have to run it in Google collabs and upload the data set
+
 Scientific Summary of NOx/NOy Emission Analysis
 
 This project presents a data-driven analysis of historical nitrogen oxides (NOx/NOy) emissions trends in the United States, utilizing publicly available air quality data. The primary objective was to investigate the influence of both a continuous secular time trend and presidential political party affiliation on pollutant concentrations.
