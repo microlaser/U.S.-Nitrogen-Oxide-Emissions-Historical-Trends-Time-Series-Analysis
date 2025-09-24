@@ -22,5 +22,5 @@ The ARIMA forecast further supported these findings by projecting that the long-
 
 Conclusion
 
-The project's findings demonstrate that while a powerful, bipartisan secular trend is the main driver of NOx/NOy emission reduction, a statistically significant correlation with political party exists after controlling for this trend. This analysis highlights the importance of using robust statistical methods to disentangle multiple causal factors in complex environmental datasets.
+The project's findings demonstrate that while a powerful, bipartisan secular trend is the main driver of NOx/NOy emission reduction, a statistically significant correlation with political party exists after controlling for this trend. This analysis highlights the importance of using robust statistical methods to disentangle multiple causal factors in complex environmental datasets.  Emissions are consistently worse during Republican presidencies.  
 
