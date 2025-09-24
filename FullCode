@@ -1,0 +1,287 @@
+# --- Step 1: Import required libraries ---
+import pandas as pd
+import numpy as np
+import os
+import zipfile
+import io
+from google.colab import files
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statsmodels.tsa.arima.model import ARIMA
+from scipy import stats
+import warnings
+warnings.filterwarnings('ignore')
+
+# --- Step 2: Upload and unzip all NONOxNOy files ---
+print("Please upload your NOx/NOy data files...")
+uploaded = files.upload()
+
+# Create directory and extract files
+os.makedirs("/content/NONOxNOy", exist_ok=True)
+for fname in uploaded.keys():
+    print(f"Extracting {fname}...")
+    with zipfile.ZipFile(io.BytesIO(uploaded[fname]), 'r') as z:
+        z.extractall("/content/NONOxNOy")
+
+# --- Step 3: Load all CSVs ---
+print("Loading CSV files...")
+dfs = []
+file_count = 0
+for root, dirs, files_in_dir in os.walk("/content/NONOxNOy"):
+    for file in files_in_dir:
+        if file.endswith(".csv"):
+            fpath = os.path.join(root, file)
+            try:
+                temp_df = pd.read_csv(fpath)
+                dfs.append(temp_df)
+                file_count += 1
+                print(f"Loaded file {file_count}: {file}")
+            except Exception as e:
+                print(f"Error loading {file}: {e}")
+
+if not dfs:
+    raise ValueError("No CSV files found or loaded successfully!")
+
+df = pd.concat(dfs, ignore_index=True)
+print(f"\nData successfully loaded. Shape: {df.shape}")
+print(f"Columns: {list(df.columns)}")
+
+# --- Step 4: Assign presidential administrations with correct party labels ---
+def assign_administration_and_party(year):
+    if year <= 1980:
+        return 'Carter', 'Democrat'
+    elif 1981 <= year <= 1988:
+        return 'Reagan', 'Republican'
+    elif 1989 <= year <= 1992:
+        return 'Bush41', 'Republican'
+    elif 1993 <= year <= 2000:
+        return 'Clinton', 'Democrat'
+    elif 2001 <= year <= 2008:
+        return 'Bush43', 'Republican'
+    elif 2009 <= year <= 2016:
+        return 'Obama', 'Democrat'
+    elif 2017 <= year <= 2020:
+        return 'Trump', 'Republican'
+    elif 2021 <= year <= 2024:
+        return 'Biden', 'Democrat'
+    else:
+        return 'Future', 'Neutral'
+
+# Process dates and assign administrations
+try:
+    df['Date Local'] = pd.to_datetime(df['Date Local'])
+    df['Year'] = df['Date Local'].dt.year
+    
+    # Apply administration and party assignment
+    admin_party = df['Year'].apply(assign_administration_and_party)
+    df['Administration'] = [x[0] for x in admin_party]
+    df['Party'] = [x[1] for x in admin_party]
+    
+    print(f"\nData spans from {df['Year'].min()} to {df['Year'].max()}")
+    print(f"Administrations included: {df['Administration'].unique()}")
+    
+except Exception as e:
+    print(f"Error processing dates: {e}")
+    print("Available columns:", df.columns.tolist())
+    raise
+
+# --- Step 5: Aggregate yearly averages ---
+yearly_means = df.groupby('Year')['Arithmetic Mean'].mean().reset_index()
+yearly_means = yearly_means.merge(
+    df[['Year', 'Administration', 'Party']].drop_duplicates(), 
+    on='Year'
+)
+
+print(f"\nYearly data points: {len(yearly_means)}")
+
+# --- Step 6: Descriptive Analysis - Republican vs Democrat comparison ---
+print("\n" + "="*60)
+print("DESCRIPTIVE ANALYSIS: Republican vs Democratic Presidents")
+print("="*60)
+
+# Calculate means by party
+party_means = df.groupby('Party')['Arithmetic Mean'].agg(['mean', 'std', 'count']).round(4)
+print("\nNOx/NOy levels by party:")
+print(party_means)
+
+# Detailed breakdown by administration
+admin_summary = df.groupby(['Administration', 'Party'])['Arithmetic Mean'].agg(['mean', 'std', 'count']).round(4)
+print(f"\nDetailed breakdown by administration:")
+print(admin_summary)
+
+
+# --- Step 7: Regression Analysis ---
+print(f"\n" + "="*40)
+print("REGRESSION ANALYSIS")
+print("="*40)
+
+# Create dummy variables for regression
+X_party = pd.get_dummies(df['Party'], prefix='Party', drop_first=True)
+X_admin = pd.get_dummies(df['Administration'], drop_first=True)
+
+# Model 1: Add time trend to control for secular changes
+df['Time_Trend'] = df['Year'] - df['Year'].min()
+y = df['Arithmetic Mean']
+X_party_time = pd.concat([X_party, df[['Time_Trend']]], axis=1)
+X_party_time_const = sm.add_constant(X_party_time)
+model_party_time = sm.OLS(y, X_party_time_const).fit()
+
+print("\nRegression Model with time trend:")
+print(model_party_time.summary())
+
+# --- Step 8: Time Series Forecast (ARIMA) - Party Neutral ---
+print(f"\n" + "="*40)
+print("TIME SERIES FORECASTING (PARTY NEUTRAL)")
+print("="*40)
+
+# Prepare time series data
+ts_data = yearly_means.set_index('Year')['Arithmetic Mean']
+ts_data = ts_data.sort_index()
+
+print(f"Time series data from {ts_data.index.min()} to {ts_data.index.max()}")
+
+# Fit ARIMA model
+try:
+    # Try different ARIMA orders and select best based on AIC
+    best_aic = float('inf')
+    best_order = None
+    best_model = None
+    
+    for p in range(0, 3):
+        for d in range(0, 2):
+            for q in range(0, 3):
+                try:
+                    model = ARIMA(ts_data, order=(p, d, q))
+                    fitted_model = model.fit()
+                    if fitted_model.aic < best_aic:
+                        best_aic = fitted_model.aic
+                        best_order = (p, d, q)
+                        best_model = fitted_model
+                except:
+                    continue
+    
+    if best_model is not None:
+        print(f"Best ARIMA model: {best_order} (AIC: {best_aic:.2f})")
+        arima_fit = best_model
+    else:
+        print("Using default ARIMA(1,1,1)")
+        arima_model = ARIMA(ts_data, order=(1, 1, 1))
+        arima_fit = arima_model.fit()
+
+except Exception as e:
+    print(f"ARIMA fitting error: {e}")
+    print("Using simple ARIMA(1,1,1)")
+    arima_model = ARIMA(ts_data, order=(1, 1, 1))
+    arima_fit = arima_model.fit()
+
+# Generate 10-year forecast
+forecast_steps = 10
+forecast = arima_fit.get_forecast(steps=forecast_steps)
+forecast_years = list(range(ts_data.index.max() + 1, ts_data.index.max() + 1 + forecast_steps))
+forecast_values = forecast.predicted_mean
+forecast_ci = forecast.conf_int()
+
+print(f"\n10-Year Forecast (Party Neutral):")
+for i, year in enumerate(forecast_years):
+    print(f"{year}: {forecast_values.iloc[i]:.4f} "
+          f"(95% CI: {forecast_ci.iloc[i, 0]:.4f} - {forecast_ci.iloc[i, 1]:.4f})")
+
+# --- Step 9: Comprehensive Visualization ---
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+
+# Plot 1: Time series with forecast
+ax1.plot(ts_data.index, ts_data.values, 'b-', linewidth=2, label="Historical Data")
+ax1.plot(forecast_years, forecast_values, 'r--', linewidth=2, label="10-Year Forecast")
+ax1.fill_between(forecast_years, 
+                 forecast_ci.iloc[:, 0], 
+                 forecast_ci.iloc[:, 1],
+                 alpha=0.3, color='red', label="95% Confidence Interval")
+ax1.axvline(x=ts_data.index.max(), color='gray', linestyle='--', alpha=0.7)
+ax1.set_title("NOx/NOy Levels: Historical Data & 10-Year Forecast")
+ax1.set_xlabel("Year")
+ax1.set_ylabel("NOx/NOy Arithmetic Mean")
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# Plot 2: Box plot by party
+party_data = [df[df['Party'] == party]['Arithmetic Mean'] for party in ['Democrat', 'Republican']]
+bp = ax2.boxplot(party_data, labels=['Democrat', 'Republican'], patch_artist=True)
+bp['boxes'][0].set_facecolor('blue')
+bp['boxes'][1].set_facecolor('red')
+ax2.set_title("NOx/NOy Distribution by Party")
+ax2.set_ylabel("NOx/NOy Arithmetic Mean")
+ax2.grid(True, alpha=0.3)
+
+# Plot 3: Time series colored by party
+for party, color in [('Democrat', 'blue'), ('Republican', 'red')]:
+    party_data = yearly_means[yearly_means['Party'] == party]
+    ax3.scatter(party_data['Year'], party_data['Arithmetic Mean'], 
+                c=color, label=party, alpha=0.7, s=50)
+
+ax3.plot(ts_data.index, ts_data.values, 'k-', alpha=0.3, linewidth=1)
+ax3.set_title("NOx/NOy Levels by Presidential Party")
+ax3.set_xlabel("Year")
+ax3.set_ylabel("NOx/NOy Arithmetic Mean")
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+
+# Plot 4: Administration comparison
+admin_means = df.groupby(['Administration', 'Party'])['Arithmetic Mean'].mean().reset_index()
+colors = ['blue' if party == 'Democrat' else 'red' for party in admin_means['Party']]
+bars = ax4.bar(range(len(admin_means)), admin_means['Arithmetic Mean'], color=colors, alpha=0.7)
+ax4.set_xticks(range(len(admin_means)))
+ax4.set_xticklabels(admin_means['Administration'], rotation=45, ha='right')
+ax4.set_title("Average NOx/NOy by Administration")
+ax4.set_ylabel("NOx/NOy Arithmetic Mean")
+ax4.grid(True, alpha=0.3)
+
+# Add legend for colors
+from matplotlib.patches import Patch
+legend_elements = [Patch(facecolor='blue', alpha=0.7, label='Democrat'),
+                  Patch(facecolor='red', alpha=0.7, label='Republican')]
+ax4.legend(handles=legend_elements)
+
+plt.tight_layout()
+plt.show()
+
+# --- Step 10: Summary Report ---
+print("\n" + "="*80)
+print("FINAL SUMMARY REPORT")
+print("="*80)
+
+print(f"\n📊 DATA OVERVIEW:")
+print(f"    • Total observations: {len(df):,}")
+print(f"    • Years covered: {df['Year'].min()} - {df['Year'].max()}")
+print(f"    • Democratic years: {len(df[df['Party'] == 'Democrat']):,} observations")
+print(f"    • Republican years: {len(df[df['Party'] == 'Republican']):,} observations")
+
+print(f"\n📈 REGRESSION RESULTS:")
+if 'model_party_time' in locals():
+    party_coef = model_party_time.params.get('Party_Republican', 0)
+    party_pval = model_party_time.pvalues.get('Party_Republican', 1)
+    time_coef = model_party_time.params.get('Time_Trend', 0)
+    time_pval = model_party_time.pvalues.get('Time_Trend', 1)
+    
+    print(f"    • Time trend effect: {time_coef:.4f} per year (p={time_pval:.4f})")
+    print(f"    • Republican party effect (controlling for time): {party_coef:.4f} (p={party_pval:.4f})")
+    print(f"    • Model R²: {model_party_time.rsquared:.4f}")
+    
+    if time_pval < 0.05:
+        trend_dir = "decreasing" if time_coef < 0 else "increasing"
+        print(f"    • A statistically significant **{trend_dir}** secular time trend is the primary driver of change.")
+    
+    if party_pval < 0.05:
+        direction = "higher" if party_coef > 0 else "lower"
+        print(f"    • After controlling for this time trend, Republican administrations are associated with statistically **{direction}** emissions.")
+    else:
+        print(f"    • After controlling for the time trend, there is no significant party effect.")
+
+print(f"\n🔮 10-YEAR FORECAST (Party Neutral):")
+trend = "DECREASING" if forecast_values.iloc[-1] < forecast_values.iloc[0] else "INCREASING"
+print(f"    • Overall trend: {trend}")
+print(f"    • {forecast_years[0]}: {forecast_values.iloc[0]:.4f}")
+print(f"    • {forecast_years[-1]}: {forecast_values.iloc[-1]:.4f}")
+print(f"    • Average change per year: {(forecast_values.iloc[-1] - forecast_values.iloc[0])/10:.4f}")
+
+print("\n" + "="*80)
