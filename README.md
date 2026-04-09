@@ -1,1 +1,52 @@
-U.S. Nitrogen Oxide Emissions: Historical Trends & Time-Series Analysis📊 Project OverviewThis project presents a data-driven investigation into historical nitrogen oxide ($NO_x/NO_y$) emission trends in the United States. Utilizing publicly available EPA air quality data (1980–2025), the analysis explores the intersection of environmental science, continuous secular time trends, and the influence of presidential political party affiliation.As a philosopher and engineer, I approached this dataset with a specific goal: to disentangle the "noise" of short-term political cycles from the "syntax" of long-term regulatory and technological progress.🛠 MethodologyThe analysis utilizes a two-part statistical approach to ensure high-confidence results:1. Multivariate Regression (OLS)I constructed a multivariate ordinary least squares regression model to isolate the effect of political party affiliation after controlling for the powerful confounding variable of time (secular trends).Dependent Variable: $NO_x/NO_y$ concentrations.Independent Variables: Continuous time and binary political party (Republican vs. Democrat).2. ARIMA Time-Series ForecastingTo project the long-term trajectory of U.S. air quality, I applied a party-neutral Autoregressive Integrated Moving Average (ARIMA) model to aggregated yearly data, forecasting concentrations for the next decade.🧪 Key FindingsDominant Secular Trend: The primary driver of air quality improvement is a consistent, statistically significant negative secular trend, independent of political cycles.Political Correlation: After controlling for the time trend, the model revealed a statistically significant correlation between presidential party and pollutant concentrations, indicating that Democratic administrations were associated with lower average $NO_x/NO_y$ levels at any given point in time.💻 Tech Stack & "Vibe"Primary Tooling: Python (Pandas, Statsmodels, Matplotlib).Environment: Optimized for Google Colab.Execution: This project was built using a combination of deep statistical knowledge and "vibe coding"—leveraging AI to rapidly prototype visualization and boilerplate, allowing me to focus my manual efforts on the integrity of the regression logic and data cleaning.🚀 How to RunData Source: Download $NO_x/NO_y$ data (1980-2025) directly from the EPA AirData Website.Environment: Upload the FullCode file to Google Colab.Execution: Upload your downloaded EPA datasets when prompted by the script.📜 Intellectual ContextMy work is guided by the principle that "Syntax may be sufficient for semantics." In the context of data science, this means that if the structural logic (syntax) of a model is sufficiently rigorous, the resulting meaning (semantics) of the data becomes undeniable.Author: Michael LazinSecurity Engineer | Debian Developer | Systems Philosopher
+# U.S. Nitrogen Oxide Emissions: Historical Trends & Time-Series Analysis
+
+[![Project Status: Active](https://img.shields.io/badge/Project%20Status-Active-green.svg)](https://github.com/microlaser/U.S.-Nitrogen-Oxide-Emissions-Historical-Trends-Time-Series-Analysis)
+[![Tech: Python](https://img.shields.io/badge/Tech-Python-blue.svg)](https://www.python.org/)
+[![Focus: Data Science](https://img.shields.io/badge/Focus-Data%20Science-orange.svg)](https://github.com/microlaser)
+
+## 📊 Project Overview
+This project presents a data-driven investigation into historical nitrogen oxide ($NO_x/NO_y$) emission trends in the United States. Utilizing publicly available EPA air quality data (1980–2025), the analysis explores the intersection of environmental science, continuous secular time trends, and the influence of presidential political party affiliation.
+
+As a philosopher and engineer, I approached this dataset with a specific goal: to disentangle the "noise" of short-term political cycles from the "syntax" of long-term regulatory and technological progress.
+
+---
+
+## 🛠 Methodology
+The analysis utilizes a two-part statistical approach to ensure high-confidence results:
+
+### 1. Multivariate Regression (OLS)
+I constructed a multivariate ordinary least squares regression model to isolate the effect of political party affiliation after controlling for the powerful confounding variable of time (secular trends).
+* **Dependent Variable:** $NO_x/NO_y$ concentrations.
+* **Independent Variables:** Continuous time and binary political party (Republican vs. Democrat).
+
+### 2. ARIMA Time-Series Forecasting
+To project the long-term trajectory of U.S. air quality, I applied a party-neutral **Autoregressive Integrated Moving Average (ARIMA)** model to aggregated yearly data, forecasting concentrations for the next decade.
+
+---
+
+## 🧪 Key Findings
+* **Dominant Secular Trend:** The primary driver of air quality improvement is a consistent, statistically significant negative secular trend, independent of political cycles.
+* **Political Correlation:** After controlling for the time trend, the model revealed a statistically significant correlation between presidential party and pollutant concentrations, indicating that Democratic administrations were associated with lower average $NO_x/NO_y$ levels at any given point in time.
+
+---
+
+## 💻 Tech Stack & "Vibe"
+* **Primary Tooling:** Python (Pandas, Statsmodels, Matplotlib).
+* **Environment:** Optimized for Google Colab.
+* **Execution:** This project was built using a combination of deep statistical knowledge and **"vibe coding"**—leveraging AI to rapidly prototype visualization and boilerplate, allowing me to focus my manual efforts on the integrity of the regression logic and data cleaning.
+
+---
+
+## 🚀 How to Run
+1.  **Data Source:** Download $NO_x/NO_y$ data (1980-2025) directly from the [EPA AirData Website](https://aqs.epa.gov/aqsweb/airdata/download_files.html).
+2.  **Environment:** Upload the `FullCode` file to Google Colab.
+3.  **Execution:** Upload your downloaded EPA datasets when prompted by the script.
+
+---
+
+## 📜 Intellectual Context
+My work is guided by the principle that **"Syntax may be sufficient for semantics."** In the context of data science, this means that if the structural logic (syntax) of a model is sufficiently rigorous, the resulting meaning (semantics) of the data becomes undeniable.
+
+---
+**Author:** [Michael Lazin](https://github.com/microlaser)  
+*Security Engineer | Debian Developer | Systems Philosopher*
